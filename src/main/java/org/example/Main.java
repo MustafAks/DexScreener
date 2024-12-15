@@ -58,19 +58,22 @@ public class Main {
     }
 
     private static void loadConfig() {
-        // Bu değerleri isterseniz bir properties dosyasından okuyun.
         BOT_TOKEN = "6482508265:AAEDUmyCM-ygU7BVO-txyykS7cKn5URspmY";
         CHAT_ID = 1692398446;
         API_URL = "https://api.dexscreener.com/token-boosts/latest/v1";
         GEM_SCORE_THRESHOLD = 5;
         NOTIFICATION_COOLDOWN_PERIOD = 24L * 60L * 60L * 1000L; // 24 saat
         MARKET_CAP_MULTIPLIER = 5.0;
-        MAIN_LOOP_DELAY = 28800000; // 8 saat
+
+        // 10 saniyede bir istek atmak için 10.000 ms bekliyoruz
+        MAIN_LOOP_DELAY = 10000; // 10 saniye
+
         MAX_RETRY_COUNT = 5;
         INITIAL_RETRY_DELAY = 5000;
         RETRY_DELAY_INCREMENT = 5000;
         DB_URL = "jdbc:sqlite:C:\\Users\\musta\\.local\\share\\DBeaverData\\workspace6\\.metadata\\sample-database-sqlite-1\\Chinook.db";
     }
+
 
     private static void setupDatabase() {
         dbManager = new DatabaseManager(DB_URL);
@@ -105,7 +108,7 @@ public class Main {
 
     private static void processTokens(JSONArray jsonResponse) {
         // Ortalamaları al (örnek olarak son 100 token)
-        TokenAverages averages = dbManager.getAverages(100);
+        DatabaseManager.TokenAverages averages = dbManager.getAverages();
 
         Set<String> processedTokens = new HashSet<>();
         for (int i = 0; i < jsonResponse.length(); i++) {
@@ -485,14 +488,11 @@ public class Main {
             }
         }
 
-        public TokenAverages getAverages(int limit) {
-            // Son X kaydın ortalama marketCap, liquidity ve volume'unu hesaplar
-            String sql = "SELECT AVG(marketCap) AS avgMarketCap, AVG(liquidityUsd) AS avgLiquidity, AVG(volume24h) AS avgVolume FROM (" +
-                    "SELECT marketCap, liquidityUsd, volume24h FROM token_metrics ORDER BY id DESC LIMIT ?" +
-                    ")";
+        public TokenAverages getAverages() {
+            // LIMIT kaldırıldı, böylece tüm tablodan ortalama alınır.
+            String sql = "SELECT AVG(marketCap) AS avgMarketCap, AVG(liquidityUsd) AS avgLiquidity, AVG(volume24h) AS avgVolume FROM token_metrics";
             try (Connection conn = DriverManager.getConnection(dbUrl);
                  PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setInt(1, limit);
                 try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         double avgMarketCap = rs.getDouble("avgMarketCap");
@@ -506,7 +506,6 @@ public class Main {
             }
             return new TokenAverages(0,0,0);
         }
-    }
 
     // Basit bir POJO sınıf
     static class TokenInfo {
