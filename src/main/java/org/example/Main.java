@@ -146,7 +146,7 @@ public class Main {
 
     private static void handleGemToken(String tokenAddress, TokenData data, int gemScore) {
         long currentTimeMillis = System.currentTimeMillis();
-        TokenInfo tokenInfo = dbManager.getTokenInfo(tokenAddress);
+        DatabaseManager.TokenInfo tokenInfo = dbManager.getTokenInfo(tokenAddress);
 
         boolean shouldNotify = false;
         if (tokenInfo == null) {
